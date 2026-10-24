@@ -278,6 +278,7 @@ uniform float uDopplerOn;
 uniform float uBeamOn;
 uniform float uBeamExp;
 uniform float uExposure;
+uniform float uMetering;
 uniform float uBeaconRate;
 uniform float uLogDepthC;
 uniform vec3  uBandColor;
@@ -315,7 +316,15 @@ vec4 present(vec3 radiance) {
   if (uDopplerOn > 0.5) col = dopplerMatrix(vD) * col;
   // Relativistic beaming: bolometric intensity goes as D^4.
   if (uBeamOn > 0.5) col *= pow(max(vD, 1e-4), uBeamExp);
-  col = max(col, vec3(0.0)) * uExposure;
+  col = max(col, vec3(0.0));
+  if (uMetering > 0.5) {
+    // Encode scene luminance BEFORE exposure/tone mapping. Two bytes of log2
+    // luminance cover 96 stops without requiring float framebuffer support.
+    float lum = max(dot(col, vec3(0.2126, 0.7152, 0.0722)), exp2(-48.0));
+    float packed = floor((clamp(log2(lum), -48.0, 48.0) + 48.0) * (65535.0 / 96.0) + 0.5);
+    return vec4(floor(packed / 256.0) / 255.0, mod(packed, 256.0) / 255.0, 0.0, 1.0);
+  }
+  col *= uExposure;
   return vec4(pow(acesFilm(col), vec3(1.0 / 2.2)), 1.0);
 }
 
