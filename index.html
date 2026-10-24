@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Relativity Park: Center Auto Exposure</title>
-<meta name="description" content="Walk near the speed of light in Relativity Park, with automatic exposure metered inside an adjustable center circle.">
+<meta name="description" content="Walk near the speed of light in Relativity Park, with center-circle auto exposure and HDR tone mapping to keep the dark sides visible.">
 <link rel="icon" href="data:,">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -146,6 +146,17 @@
       </label>
     </div>
     <div class="exposure-readout"><span>Current exposure</span><output id="v-exposure">× 1.000</output></div>
+    <div id="hdr-controls">
+      <label class="check">
+        <input type="checkbox" id="opt-hdr" checked>
+        <span>HDR tone mapping
+          <small>Keep dark sides visible alongside the bright center.</small></span>
+      </label>
+      <div class="slider" id="hdr-strength-control">
+        <div class="top"><label for="opt-hdr-strength">HDR strength</label><output id="opt-hdr-strength-out" for="opt-hdr-strength">100%</output></div>
+        <input type="range" id="opt-hdr-strength" min="0" max="1" step="0.05" value="1">
+      </div>
+    </div>
   </fieldset>
 
   <fieldset>
@@ -226,6 +237,9 @@
 
   <h3>Auto exposure</h3>
   <p>Brightness adapts to the scene inside the center circle, including Doppler color and relativistic beaming. In Settings, toggle <b>Auto exposure</b> or change the <b>Circle diameter</b> from 5% to 100% of the shorter screen dimension (20% by default). The outline marks the metered region; you can hide it without changing the exposure. With auto exposure off, the Exposure slider in Debug sets brightness manually.</p>
+
+  <h3>HDR tone mapping</h3>
+  <p><b>HDR tone mapping</b> compresses extreme brightness differences so the sides remain visible as you approach light speed. Use <b>HDR strength</b> to blend between the original appearance and full recovery. It works with automatic or manual exposure. Surface shading is retained; extreme shadow recovery fades toward neutral gray instead of amplifying tiny spectral values into saturated bands. Turn HDR off to see the original brightness range.</p>
 
   <h3>Things to try</h3>
   <ul>

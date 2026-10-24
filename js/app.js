@@ -16,6 +16,8 @@
     fx: { delay: true, aberr: true, doppler: true, beam: true },
     beamExp: 4.0,
     exposure: 1.0,
+    hdr: true,
+    hdrStrength: 1.0,
     groundDetail: 2,        // the floor the user chooses
     groundActive: 2,        // what is actually drawn right now
     groundAdaptive: true,
@@ -354,6 +356,7 @@
     g.uniform1f(u.uBeamExp, S.beamExp);
     g.uniform1f(u.uExposure, R3.exposure);
     g.uniform1f(u.uMetering, R3.metering ? 1 : 0);
+    g.uniform1f(u.uHdrStrength, S.hdr ? S.hdrStrength : 0);
   }
 
   function drawMesh(m) {
@@ -542,6 +545,12 @@
     slider('opt-exposure', 'opt-exposure-out', v => { S.exposure = v; }, v => v.toFixed(2));
     slider('opt-beam', 'opt-beam-out', v => { S.beamExp = v; }, v => 'D^' + v.toFixed(1));
     slider('opt-res', 'opt-res-out', v => { S.resScale = v; }, v => Math.round(v * 100) + '%');
+    slider('opt-hdr-strength', 'opt-hdr-strength-out', v => { S.hdrStrength = v; }, v => Math.round(v * 100) + '%');
+    document.getElementById('opt-hdr').addEventListener('change', e => {
+      S.hdr = e.target.checked;
+      document.getElementById('opt-hdr-strength').disabled = !S.hdr;
+      document.getElementById('hdr-strength-control').classList.toggle('is-disabled', !S.hdr);
+    });
     document.getElementById('opt-ground-adapt').addEventListener('change', e => {
       S.groundAdaptive = e.target.checked;
       if (!S.groundAdaptive) useGroundLevel(S.groundDetail);

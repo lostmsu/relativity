@@ -65,6 +65,9 @@ html, body {
 
 #meter-circle[hidden] { display: none; }
 #meter-controls.is-disabled { opacity: 0.4; }
+#hdr-strength-control.is-disabled { opacity: 0.4; }
+#hdr-strength-control input:disabled { cursor: default; }
+#hdr-controls { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--edge); }
 #meter-controls input:disabled { cursor: default; }
 #meter-size-help { color: var(--dim); }
 .exposure-readout {

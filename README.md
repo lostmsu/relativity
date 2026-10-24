@@ -6,6 +6,18 @@ starts at 20% of the shorter viewport dimension (adjustable from 5% to 100%).
 The optional circle outline shows the exact metering region. Disable auto
 exposure to use the original manual Exposure setting under Debug.
 
+**HDR tone mapping** is also enabled by default. Its strength slider blends
+the original display with a view that keeps the sides visible alongside the
+bright center. It compresses the per-pixel relativistic lighting gain in stops,
+using source radiance to preserve surface shading and texture contrast. Gain
+within one stop is unchanged; larger gains roll off toward three stops. The
+unmodified physical radiance still drives center-circle auto exposure. This is
+an SDR-compatible visualization, and requires no HDR monitor or float render
+target. Extreme recovery smoothly loses chroma toward neutral gray, preventing
+vanishing spectral signals from turning into saturated bands or a red wash.
+The highlight curve bounds already-white input before its polynomial to avoid
+overflow during large exposure changes. Disable HDR for the original display.
+
 The meter renders a 48×48 crop of the center region at most ten times per
 second. It measures log-average luminance after Doppler color and beaming,
 before exposure and tone mapping, excluding pixels outside the circle. A

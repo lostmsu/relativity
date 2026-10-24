@@ -279,6 +279,7 @@ uniform float uBeamOn;
 uniform float uBeamExp;
 uniform float uExposure;
 uniform float uMetering;
+uniform float uHdrStrength;
 uniform float uBeaconRate;
 uniform float uLogDepthC;
 uniform vec3  uBandColor;
@@ -307,7 +308,40 @@ mat3 dopplerMatrix(float D) {
 
 vec3 acesFilm(vec3 x) {
   const float a = 2.51, b = 0.03, c = 2.43, d = 0.59, e = 0.14;
+  // Already-white values need no further precision. Bound the polynomial so
+  // extreme beaming plus a changing exposure cannot overflow its x*x terms.
+  x = clamp(x, vec3(0.0), vec3(1e4));
   return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
+}
+
+/* Compress the relativistic lighting gain while retaining the source's
+ * surface contrast. Ordinary +/- one-stop adjustments stay unchanged; extreme
+ * gains roll off smoothly toward +/- three stops. A simple lift of the final
+ * pixel would flatten the ground grid and other details into a uniform haze. */
+vec3 hdrDisplay(vec3 source, vec3 received) {
+  const vec3 luma = vec3(0.2126, 0.7152, 0.0722);
+  float sourceLum = dot(max(source, vec3(0.0)), luma);
+  if (sourceLum <= 0.0) return vec3(0.0);
+  float receivedLum = dot(received, luma);
+  float gainStops = log2(max(receivedLum / sourceLum, 1e-30))
+                  + log2(max(uExposure, 1e-30));
+  float excess = max(abs(gainStops) - 1.0, 0.0);
+  float compressedStops = sign(gainStops) * (min(abs(gainStops), 1.0)
+                        + 2.0 * excess / (2.0 + excess));
+
+  // Do not amplify vanishing spectral values into saturated color bands.
+  // Normalize chroma safely, then recover extreme shadows in neutral gray.
+  // Ordinary shifts retain their hue; fully out-of-band light has no visible
+  // hue to recover. Source luminance still carries the surface detail.
+  float peak = max(max(received.r, received.g), received.b);
+  vec3 chroma = received / max(peak, 1e-30);
+  vec3 hue = chroma / max(dot(chroma, luma), 1e-6);
+  float spectralLoss = 1.0 - smoothstep(-32.0, -16.0,
+    log2(max(receivedLum / sourceLum, 1e-30)));
+  float recovery = max(spectralLoss, smoothstep(4.0, 18.0, -gainStops));
+  recovery = max(recovery, smoothstep(8.0, 20.0, gainStops));
+  hue = mix(hue, vec3(1.0), recovery);
+  return acesFilm(hue * sourceLum * exp2(compressedStops));
 }
 
 /* Radiance leaving the source -> pixel on screen. */
@@ -324,8 +358,11 @@ vec4 present(vec3 radiance) {
     float packed = floor((clamp(log2(lum), -48.0, 48.0) + 48.0) * (65535.0 / 96.0) + 0.5);
     return vec4(floor(packed / 256.0) / 255.0, mod(packed, 256.0) / 255.0, 0.0, 1.0);
   }
-  col *= uExposure;
-  return vec4(pow(acesFilm(col), vec3(1.0 / 2.2)), 1.0);
+  vec3 display = acesFilm(col * uExposure);
+  if (uHdrStrength > 0.0) {
+    display = mix(display, hdrDisplay(radiance, col), uHdrStrength);
+  }
+  return vec4(pow(display, vec3(1.0 / 2.2)), 1.0);
 }
 
 float hash21(vec2 p) {
