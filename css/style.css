@@ -47,6 +47,40 @@ html, body {
   cursor: crosshair;
 }
 
+/* The guide matches the physical-pixel circle used by the exposure meter. */
+#meter-circle {
+  --meter-size: 20vmin;
+  position: fixed;
+  z-index: 3;
+  left: 50%;
+  top: 50%;
+  width: var(--meter-size);
+  height: var(--meter-size);
+  transform: translate(-50%, -50%);
+  border: 1px dashed rgba(240, 180, 90, 0.72);
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(8, 11, 16, 0.20);
+  pointer-events: none;
+}
+
+#meter-circle[hidden] { display: none; }
+#meter-controls.is-disabled { opacity: 0.4; }
+#meter-controls input:disabled { cursor: default; }
+#meter-size-help { color: var(--dim); }
+.exposure-readout {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 8px;
+  font-size: 10px;
+  color: var(--dim);
+}
+.exposure-readout output { color: var(--accent); }
+input:focus-visible, button:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
 /* The render behind the chrome can be anything from a white sky to black space,
    so the unpanelled readouts sit on their own gradient scrims. */
 #scrim {

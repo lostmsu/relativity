@@ -19,14 +19,13 @@
     groundDetail: 2,        // the floor the user chooses
     groundActive: 2,        // what is actually drawn right now
     groundAdaptive: true,
-    eyeAdapt: true,
-    adapt: 1.0,                  // current state of the observer's eye
+    autoExposure: true,
+    meterSize: 20,               // diameter, percent of the shorter viewport side
+    showMeter: true,
     resScale: 1.0,
     paused: false,               // freeze-frame: the world stops, the mouse still looks
     running: false
   };
-
-  const ADAPT_TAU = 0.30;        // seconds for the eye to catch up
 
   const ACCEL = 0.25;            // proper acceleration, in rapidity per second
   const BRAKE_DECAY = 6.0;
@@ -99,6 +98,7 @@
     const begin = () => {
       hud.overlay.classList.add('is-hidden');
       hud.hint.classList.remove('is-faded');
+      canvas.focus({ preventScroll: true });
       if (!document.pointerLockElement && canvas.requestPointerLock) {
         const req = canvas.requestPointerLock();
         if (req && req.catch) req.catch(() => {});   // fall back to drag-to-look
@@ -108,6 +108,8 @@
 
     addEventListener('keydown', e => {
       if (e.code === 'Escape') { return; }           // the browser releases the lock
+      // Let sliders, checkboxes, and buttons keep their normal keyboard input.
+      if (e.target.closest && e.target.closest('input, select, textarea, button, summary, a')) return;
       if (e.repeat) { return; }                      // held keys must not flicker toggles
 
       const fx = FX_KEYS[e.code];
@@ -160,6 +162,7 @@
     S.pitch = SCENE.start.pitch;
     S.tWorld = 0;
     S.tau = 0;
+    if (R3.meter) R3.meter.reset();
   }
 
   // ---------------------------------------------------------------- physics -
@@ -256,6 +259,8 @@
     R3.exposure = S.exposure;
     R3.proj = new Float32Array(16);
     R3.viewRot = new Float32Array(9);
+    R3.meter = new R.CenterExposure(g);
+    R3.metering = false;
 
     g.clearColor(0.02, 0.03, 0.05, 1);
     g.disable(g.CULL_FACE);           // Terrell rotation shows you faces that
@@ -348,6 +353,7 @@
     g.uniform1f(u.uBeamOn, S.fx.beam ? 1 : 0);
     g.uniform1f(u.uBeamExp, S.beamExp);
     g.uniform1f(u.uExposure, R3.exposure);
+    g.uniform1f(u.uMetering, R3.metering ? 1 : 0);
   }
 
   function drawMesh(m) {
@@ -376,7 +382,22 @@
       ? [S.vel[0] / kin.speed, S.vel[1] / kin.speed, S.vel[2] / kin.speed]
       : [0, 0, 1];
 
-    R3.exposure = adaptedExposure(kin, { right, up, fwd, bd }, dt);
+    R3.exposure = S.exposure * R3.meter.update(dt, S.autoExposure);
+
+    drawScene(kin, bd);
+    if (S.autoExposure) {
+      R3.metering = true;
+      try {
+        R3.meter.sample(R3.proj, canvas.width, canvas.height, S.meterSize, () => drawScene(kin, bd));
+      } finally {
+        R3.metering = false;
+      }
+    }
+    return { fwd, bd };
+  }
+
+  function drawScene(kin, bd) {
+    const g = glc;
 
     g.clear(g.COLOR_BUFFER_BIT | g.DEPTH_BUFFER_BIT);
 
@@ -428,42 +449,6 @@
       drawMesh(mesh);
     }
 
-    return { fwd, bd };
-  }
-
-  /* Eye adaptation.
-   *
-   * Beaming is a D^4 law, so at a brisk jog the road ahead is ten times its
-   * resting brightness and the frame clips to white — which hides the very
-   * effects it is supposed to show. A real observer's retina would adapt, so
-   * we adapt too: sample the beaming factor across the field of view, take the
-   * log-average (the same key value ordinary auto-exposure uses), and let the
-   * eye chase it with a time constant. The front-to-back gradient WITHIN the
-   * frame is untouched — only the overall level moves. */
-  function adaptedExposure(kin, basis, dt) {
-    let target = 1;
-    if (S.eyeAdapt && S.fx.beam && kin.beta > 1e-6) {
-      const ty = Math.tan(0.60);
-      const tx = ty * (canvas.width / Math.max(1, canvas.height));
-      let logSum = 0, n = 0;
-      for (let j = 0; j <= 5; j++) {
-        for (let i = 0; i <= 5; i++) {
-          const px = tx * ((i / 5) * 2 - 1), py = ty * ((j / 5) * 2 - 1);
-          const d = norm([
-            basis.right[0] * px + basis.up[0] * py + basis.fwd[0],
-            basis.right[1] * px + basis.up[1] * py + basis.fwd[1],
-            basis.right[2] * px + basis.up[2] * py + basis.fwd[2]
-          ]);
-          const cosT = dot(d, basis.bd);
-          logSum += Math.log(1 / (kin.gamma * (1 - kin.beta * cosT)));
-          n++;
-        }
-      }
-      target = Math.exp(S.beamExp * (logSum / n));
-    }
-    target = Math.min(1e6, Math.max(1e-4, target));
-    S.adapt += (target - S.adapt) * (1 - Math.exp(-dt / ADAPT_TAU));
-    return S.exposure / Math.max(S.adapt, 1e-4);
   }
 
   // -------------------------------------------------------------- instruments
@@ -500,11 +485,24 @@
     // The bar is drawn in rapidity, so equal effort reads as equal progress.
     const phi = Math.atanh(Math.min(b, 0.999999));
     hud.rapid.style.width = Math.min(100, (phi / 6.1) * 100).toFixed(1) + '%';
+    const exposure = document.getElementById('v-exposure');
+    exposure.textContent = '× ' + (R3.exposure < 0.01 || R3.exposure >= 1000
+      ? R3.exposure.toExponential(2) : R3.exposure.toFixed(3));
   }
 
   // --------------------------------------------------------------- UI wiring
-  function togglePanel() { hud.panel.classList.toggle('is-open'); }
-  function toggleHelp() { hud.help.classList.toggle('is-open'); }
+  function togglePanel() {
+    const open = hud.panel.classList.toggle('is-open');
+    if (open && document.pointerLockElement) document.exitPointerLock();
+    if (!open) canvas.focus({ preventScroll: true });
+    for (const k in keys) keys[k] = false;
+  }
+  function toggleHelp() {
+    const open = hud.help.classList.toggle('is-open');
+    if (open && document.pointerLockElement) document.exitPointerLock();
+    if (!open) canvas.focus({ preventScroll: true });
+    for (const k in keys) keys[k] = false;
+  }
 
   /* Pause the time-evolution of the world, while leaving the mouse free to keep exploring. */
   function togglePause() {
@@ -551,9 +549,27 @@
     slider('opt-ground', 'opt-ground-out', setGroundFloor,
       v => SCENE.GROUND_LEVELS[Math.round(v)].label);
 
-    document.getElementById('opt-eye').addEventListener('change', e => {
-      S.eyeAdapt = e.target.checked;
-      if (!S.eyeAdapt) S.adapt = 1;
+    const syncMeter = () => {
+      const circle = document.getElementById('meter-circle');
+      circle.style.setProperty('--meter-size', S.meterSize + 'vmin');
+      circle.hidden = !S.autoExposure || !S.showMeter;
+      document.getElementById('opt-meter-size').disabled = !S.autoExposure;
+      document.getElementById('opt-meter-guide').disabled = !S.autoExposure;
+      document.getElementById('meter-controls').classList.toggle('is-disabled', !S.autoExposure);
+    };
+    document.getElementById('opt-auto-exposure').addEventListener('change', e => {
+      S.autoExposure = e.target.checked;
+      R3.meter.reset();
+      syncMeter();
+    });
+    slider('opt-meter-size', 'opt-meter-size-out', v => {
+      S.meterSize = v;
+      R3.meter.invalidate();
+      syncMeter();
+    }, v => Math.round(v) + '%');
+    document.getElementById('opt-meter-guide').addEventListener('change', e => {
+      S.showMeter = e.target.checked;
+      syncMeter();
     });
 
     document.getElementById('panel-close').addEventListener('click', togglePanel);
@@ -682,7 +698,8 @@
       if (S.groundAdaptive) {
         useGroundLevel(SCENE.adaptiveGroundLevel(kin.gamma, S.groundDetail, S.groundActive));
       }
-      const view = render(kin, dt);
+      // Eye adaptation follows real time even while the world is paused.
+      const view = render(kin, real);
 
       if (hudAcc > 0.08) { updateHud(kin, view); hudAcc = 0; }
       if (acc > 0.5) { hud.fps.textContent = Math.round(frames / acc); frames = 0; acc = 0; }

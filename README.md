@@ -1,5 +1,20 @@
 # Relativity Park: Walking Near the Speed of Light
 
+This edition adds scene-based auto exposure with circular center metering.
+In Settings, **Auto exposure** is enabled by default and **Circle diameter**
+starts at 20% of the shorter viewport dimension (adjustable from 5% to 100%).
+The optional circle outline shows the exact metering region. Disable auto
+exposure to use the original manual Exposure setting under Debug.
+
+The meter renders a 48×48 crop of the center region at most ten times per
+second. It measures log-average luminance after Doppler color and beaming,
+before exposure and tone mapping, excluding pixels outside the circle. A
+two-byte logarithmic encoding covers 96 stops in a standard RGBA8 target.
+WebGL2 pixel-pack buffers and fences read results asynchronously. Exposure
+adapts in stops with a 0.3-second time constant, including while paused.
+
+Original simulator: https://github.com/dbrant/relativity by Dmitry Brant.
+
 A special relativity simulator in which **c = 5 km/h**.
 
 Just like in the real world, the speed of light is not attainable, only approachable asymptotically.
@@ -69,11 +84,9 @@ Blueshift, on the other hand, is necessarily less accurate: beyond violet, the c
 turns into a metallic silver to represent x-rays, then to a bright white to represent
 gamma rays of increasing energy.
 
-Brightness uses the bolometric `D⁴` beaming law. Because this becomes fully white when
-approaching light speed, there is an eye-adaptation model on by default: the log-average
-beaming factor across the field of view, chased with a 0.3 s time constant. It
-moves the overall level only; the front-to-back gradient within the frame is
-untouched. Turn it off in Settings to see the raw law.
+Brightness uses the bolometric `D⁴` beaming law. Circular scene-based auto exposure,
+described above, adjusts the overall exposure while preserving the brightness
+gradient within the frame. Turn it off in Settings to see the raw law.
 
 Your own motion integrates through Einstein velocity addition, so holding the key
 down adds *rapidity* linearly and you approach `c` without ever arriving — the

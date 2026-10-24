@@ -3,8 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Relativity Park: Walking Speed of Light</title>
-<meta name="description" content="Special relativity simulator in which light crawls along at a human speed, so Lorentz contraction, aberration and Doppler shift happen at walking pace.">
+<title>Relativity Park: Center Auto Exposure</title>
+<meta name="description" content="Walk near the speed of light in Relativity Park, with automatic exposure metered inside an adjustable center circle.">
+<link rel="icon" href="data:,">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Azeret+Mono:wght@400;500&family=Saira+Condensed:wght@500;600;700&display=swap">
@@ -12,7 +13,7 @@
 </head>
 <body>
 
-<canvas id="view"></canvas>
+<canvas id="view" tabindex="0" aria-label="Relativity Park. Use WASD or arrow keys to accelerate; Tab opens settings."></canvas>
 <div id="scrim" aria-hidden="true"></div>
 
 <header class="hud" id="masthead">
@@ -63,6 +64,7 @@
 <div class="hud" id="reticle" aria-hidden="true">
   <div class="cross"></div>
 </div>
+<div id="meter-circle" aria-hidden="true"></div>
 
 <div class="hud" id="galilean">Galilean view (aberration off)</div>
 <div class="hud" id="paused">Paused</div>
@@ -125,17 +127,33 @@
     </label>
   </fieldset>
 
+  <fieldset id="exposure-settings">
+    <legend class="eyebrow">Exposure</legend>
+    <label class="check">
+      <input type="checkbox" id="opt-auto-exposure" checked>
+      <span>Auto exposure
+        <small>Adjust brightness using the scene inside the center circle.</small></span>
+    </label>
+    <div id="meter-controls">
+      <div class="slider">
+        <div class="top"><label for="opt-meter-size">Circle diameter</label><output id="opt-meter-size-out" for="opt-meter-size">20%</output></div>
+        <input type="range" id="opt-meter-size" min="5" max="100" step="1" value="20" aria-describedby="meter-size-help">
+        <small id="meter-size-help">Percent of the shorter screen dimension.</small>
+      </div>
+      <label class="check">
+        <input type="checkbox" id="opt-meter-guide" checked>
+        <span>Show metering circle</span>
+      </label>
+    </div>
+    <div class="exposure-readout"><span>Current exposure</span><output id="v-exposure">× 1.000</output></div>
+  </fieldset>
+
   <fieldset>
     <legend class="eyebrow">World</legend>
     <div class="slider">
       <div class="top"><label for="opt-c">Speed of light</label><output id="opt-c-out">5.0 km/h</output></div>
       <input type="range" id="opt-c" min="1" max="40" step="0.5" value="5">
     </div>
-    <label class="check">
-      <input type="checkbox" id="opt-eye" checked>
-      <span>Eye adaptation
-        <small>Your retina adjusts to the average brightness ahead.</small></span>
-    </label>
   </fieldset>
 
   <details id="debug">
@@ -168,7 +186,7 @@
   </details>
 
   <p id="credit">By <a href="https://dmitrybrant.com" target="_blank" rel="noopener">Dmitry Brant</a>, 2026
-    <br /><a href="https://github.com/dbrant/relativity" target="_blank" rel="noopener">source code</a></p>
+    <br /><a href="https://github.com/dbrant/relativity" target="_blank" rel="noopener">original source code</a> · center exposure edition</p>
 </aside>
 
 <aside id="help" aria-label="Field guide">
@@ -205,6 +223,9 @@
     <div class="keyrow"><kbd>C</kbd><span>Doppler color</span></div>
     <div class="keyrow"><kbd>B</kbd><span>relativistic beaming</span></div>
   </div>
+
+  <h3>Auto exposure</h3>
+  <p>Brightness adapts to the scene inside the center circle, including Doppler color and relativistic beaming. In Settings, toggle <b>Auto exposure</b> or change the <b>Circle diameter</b> from 5% to 100% of the shorter screen dimension (20% by default). The outline marks the metered region; you can hide it without changing the exposure. With auto exposure off, the Exposure slider in Debug sets brightness manually.</p>
 
   <h3>Things to try</h3>
   <ul>
@@ -256,6 +277,7 @@
 <script src="js/stl.js"></script>
 <script src="js/shaders.js"></script>
 <script src="js/scene.js"></script>
+<script src="js/exposure.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>
