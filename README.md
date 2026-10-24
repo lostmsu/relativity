@@ -169,7 +169,11 @@ become 5.
   — 33k vertices at Low through 650k at Extreme — with two steps of headroom
   above whatever floor you set, and hysteresis on the thresholds so a wobble
   cannot thrash it. Levels are built once and kept, because rebuilding a 650k
-  disc mid-acceleration is exactly when a hitch would show.
+  disc mid-acceleration is exactly when a hitch would show. All five ground
+  levels are now built and uploaded during startup, yielding between builds.
+  Offscreen draws warm their GPU buffers, and a nonblocking fence waits for
+  completion before movement starts. Crossing a speed threshold only selects
+  an already-prepared mesh.
 - **Backface culling is off.** Terrell rotation shows you faces that are pointing
   away from you; culling them would delete the effect.
 - **Logarithmic depth.** The apparent scene spans centimetres to tens of

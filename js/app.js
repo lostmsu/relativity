@@ -280,14 +280,54 @@
       .reduce((n, m) => n + (m ? m.verts : 0), 0);
   }
 
-  /* Levels are built once and kept. Rebuilding a 650k-vertex disc costs a few
-   * hundred milliseconds, which would be a visible hitch every time you crossed
-   * a threshold — and you cross them while accelerating, when it shows most. */
+  // Every level is prepared before input starts. Speed transitions only select
+  // cached meshes; they never build geometry or upload buffers in a frame.
   function groundMesh(level) {
     if (!R3.groundCache[level]) {
       R3.groundCache[level] = GL.uploadMesh(glc, R3.progWorld, SCENE.buildGround(level));
     }
     return R3.groundCache[level];
+  }
+
+  const nextFrame = () => new Promise(resolve => requestAnimationFrame(resolve));
+
+  async function prepareGroundMeshes() {
+    for (let level = 0; level < SCENE.GROUND_LEVELS.length; level++) {
+      await nextFrame();
+      groundMesh(level);
+    }
+
+    const g = glc;
+    // Exercise the actual draw path as well as uploading. Drivers can defer
+    // buffer validation or allocation until first use. A one-pixel viewport in
+    // the existing offscreen target keeps these draws off the visible canvas.
+    resize();
+    GL.perspective(R3.proj, 1.20, canvas.width / canvas.height, 0.05);
+    R3.viewRot.set([1, 0, 0, 0, 1, 0, 0, 0, 1]);
+    g.bindFramebuffer(g.FRAMEBUFFER, R3.meter.framebuffer);
+    g.viewport(0, 0, 1, 1);
+    let fence;
+    try {
+      setCommon(R3.progWorld, { beta: 0, gamma: 1 }, [0, 0, 1]);
+      for (const mesh of R3.groundCache) {
+        g.clear(g.COLOR_BUFFER_BIT | g.DEPTH_BUFFER_BIT);
+        drawMesh(mesh);
+      }
+      fence = g.fenceSync(g.SYNC_GPU_COMMANDS_COMPLETE, 0);
+      if (!fence) throw new Error('Could not prepare the ground buffers.');
+      g.flush();
+      for (;;) {
+        await nextFrame();
+        const status = g.clientWaitSync(fence, 0, 0);
+        if (status === g.ALREADY_SIGNALED || status === g.CONDITION_SATISFIED) break;
+        if (status === g.WAIT_FAILED) throw new Error('Could not finish preparing the ground buffers.');
+      }
+    } finally {
+      if (fence) g.deleteSync(fence);
+      g.bindVertexArray(null);
+      g.bindFramebuffer(g.FRAMEBUFFER, null);
+      g.viewport(0, 0, canvas.width, canvas.height);
+    }
   }
 
   function useGroundLevel(level) {
@@ -661,7 +701,7 @@
   }
 
   // --------------------------------------------------------------------- go -
-  function boot() {
+  async function boot() {
     canvas = document.getElementById('view');
     hud = {
       overlay: document.getElementById('overlay'),
@@ -685,14 +725,28 @@
       fps: document.getElementById('v-fps')
     };
 
+    const cue = hud.overlay.querySelector('.cue');
+    const readyCue = cue.textContent;
+    cue.textContent = 'Preparing park…';
+    hud.overlay.setAttribute('aria-busy', 'true');
+    hud.panel.inert = true;
+    // Let the loading cue paint before shader and mesh setup begins.
+    await nextFrame();
+    await nextFrame();
     try {
       initGL();
+      await prepareGroundMeshes();
       document.getElementById('v-verts').textContent = (totalVerts() / 1000).toFixed(0) + 'k';
+      cue.textContent = readyCue;
     } catch (err) {
       document.getElementById('overlay-title').textContent = 'Cannot start';
       document.getElementById('overlay-body').textContent = err.message;
+      cue.textContent = '';
       console.error(err);
       return;
+    } finally {
+      hud.overlay.removeAttribute('aria-busy');
+      hud.panel.inert = false;
     }
 
     paintSpectrum();
