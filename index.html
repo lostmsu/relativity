@@ -14,6 +14,7 @@
 <body>
 
 <canvas id="view" tabindex="0" aria-label="Relativity Park. Use WASD or arrow keys to accelerate; Tab opens settings."></canvas>
+<canvas id="radiation-film" aria-hidden="true"></canvas>
 <div id="scrim" aria-hidden="true"></div>
 
 <header class="hud" id="masthead">
@@ -175,6 +176,16 @@
         <small>Occasional natural-background ticks, including at rest. Switch off for zero at rest.</small></span>
     </label>
     <label class="check">
+      <input type="checkbox" id="opt-film" checked>
+      <span>Radiation film
+        <small>Grain, fogging, bright flecks and short exposure tracks.</small></span>
+    </label>
+    <div class="slider" id="film-strength-control">
+      <div class="top"><label for="opt-film-strength">Max grain coverage</label><output id="opt-film-strength-out" for="opt-film-strength">50%</output></div>
+      <input type="range" id="opt-film-strength" min="0" max="1" step="0.05" value="0.50">
+      <small>Sparse background marks; dense grain only at extreme reference exposure.</small>
+    </div>
+    <label class="check">
       <input type="checkbox" id="opt-light-sound" checked>
       <span>Audible intensity
         <small>Individual detector ticks merge into crackle as exposure rises.</small></span>
@@ -330,6 +341,7 @@
 <script src="js/exposure.js"></script>
 <script src="js/radiation.js"></script>
 <script src="js/light-monitor.js"></script>
+<script src="js/radiation-film.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

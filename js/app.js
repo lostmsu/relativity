@@ -167,6 +167,7 @@
     if (R3.meter) R3.meter.reset();
     if (R3.lightMeter) R3.lightMeter.reset();
     if (R3.lightMonitor) R3.lightMonitor.reset();
+    if (R3.film) R3.film.reset();
   }
 
   // ---------------------------------------------------------------- physics -
@@ -697,6 +698,7 @@
     paintSpectrum();
     bindControls();
     R3.lightMonitor = new R.LightMonitor();
+    R3.film = new R.RadiationFilm(document.getElementById('radiation-film'));
     setupInput();
     loadModels();
     loadDecal();
@@ -716,6 +718,7 @@
       }
       // Eye adaptation follows real time even while the world is paused.
       const view = render(kin, real);
+      R3.film.render(real, R3.lightMonitor.exposure, hud.overlay.classList.contains('is-hidden'));
 
       if (hudAcc > 0.08) { updateHud(kin, view); hudAcc = 0; }
       if (acc > 0.5) { hud.fps.textContent = Math.round(frames / acc); frames = 0; acc = 0; }
