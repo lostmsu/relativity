@@ -18,6 +18,46 @@ vanishing spectral signals from turning into saturated bands or a red wash.
 The highlight curve bounds already-white input before its polynomial to avoid
 overflow during large exposure changes. Disable HDR for the original display.
 
+**Radiation film** has a separate, explicit reference exposure model in
+`js/radiation.js`; visible scene brightness never drives it. A head-on reference
+field of 0.1 μGy/h is boosted by ((1 + β) / (1 - β))² (D⁴). The chosen detector
+sensitivity is 2 counts/s per μGy/h. Background is about 0.2 counts/s (12 CPM).
+The Background radiation switch subtracts the rest field when off, giving
+exactly zero audio and zero film overlay at β = 0. Real background is enabled
+by default, following the requested background-like behavior.
+
+Film coverage is maxCoverage × level, with a default maximum of 50%. For
+x = referenceDose / 0.5 Gy/s, level = 0.75x below x = 1, then
+0.75 + 0.25(1 - exp(-3(x - 1))) above it. This keeps the low-dose response
+linear, with a smooth first derivative into aesthetic compression only above
+the extreme-exposure knee. That reference rate accumulates 10 Gy in 20 seconds.
+It is a virtual calibration, not a physical dose inferred from the park, and
+does not mean death occurs within 20 seconds. Sources:
+[LND detector timing](https://www.lndinc.com/wp-content/uploads/2017/03/LND_71210_download.pdf),
+[CDC high-dose context](https://www.cdc.gov/radiation-emergencies/hcp/clinical-guidance/ars.html).
+
+At background levels the overlay produces occasional marks, with no grain
+curtain. Clusters, tracks and fogging build with reference exposure. The raster
+grain layer supplies coverage while larger marks are bounded at 1,200 particles.
+The separate canvas sits below the instruments and is excluded from both
+brightness meters; it does not alter relativistic geometry.
+
+The **Incoming light** HUD averages raw, linear scene luminance over the whole
+view at 2 Hz, relative to the initial view (reset with R). It uses a separate
+48×48 metering pass, so center circle size, exposure, and HDR do not affect it.
+**Audible intensity** produces a Poisson arrival process with a 90 μs
+nonparalyzable detector recovery time. Expected detected rate is λ/(1 + λτ),
+linear at low intensity and naturally saturating at high intensity. There is
+no logarithmic low-dose click remapping and no 240-click cap. Pulses are packed
+into 50 ms audio blocks, avoiding one AudioNode per hit at thousands of counts/s.
+Each tick has the same 12 ms waveform, independent of dose. Sound is enabled
+by default, starts on a user gesture, and pauses in hidden tabs. The 100%
+volume ceiling uses an exponential amplitude curve over -40 to 0 dB, with
+exact mute at zero; a compressor and soft limiter handle overlapping pulses.
+Turning the reference rate to zero stops queued sources immediately.
+The Settings plot shows forward and sideways D⁴ beaming versus speed on a
+logarithmic brightness axis, independently of spectral color changes.
+
 The meter renders a 48×48 crop of the center region at most ten times per
 second. It measures log-average luminance after Doppler color and beaming,
 before exposure and tone mapping, excluding pixels outside the circle. A

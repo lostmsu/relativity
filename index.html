@@ -288,6 +288,13 @@
   <h3>HDR tone mapping</h3>
   <p><b>HDR tone mapping</b> compresses extreme brightness differences so the sides remain visible as you approach light speed. Use <b>HDR strength</b> to blend between the original appearance and full recovery. It works with automatic or manual exposure. Surface shading is retained; extreme shadow recovery fades toward neutral gray instead of amplifying tiny spectral values into saturated bands. Turn HDR off to see the original brightness range.</p>
 
+  <h3>Light monitor &amp; sound</h3>
+  <p><b>Radiation film</b> adds occasional exposure marks at low levels and dense grain at extreme reference exposure. <b>Max grain coverage</b> defaults to 50%. The response is linear below the extreme-exposure knee and smoothly compressed above it. The screen overlay does not affect either brightness meter.</p>
+  <p><b>Incoming light</b> remains a separate measurement of visible scene brightness. Radiation uses a reference field, so a bright lamp or a change to exposure/HDR does not trigger Geiger noise. <b>Background radiation</b> gives about 12 irregular counts per minute at rest. Switch it off for exact silence and a clear radiation overlay at zero speed.</p>
+  <p>Geiger ticks are enabled by default and start on your first click or keypress. Individual ticks have consistent amplitude; more radiation increases their frequency until they merge into crackle. The virtual detector includes a 90 μs recovery time, so it saturates like a detector rather than following an arbitrary logarithmic click-rate curve. <b>Volume ceiling</b> controls loudness; zero mutes immediately.</p>
+  <p><b>Reference calibration:</b> a head-on field of 0.1 μGy/h is boosted with D⁴. The generic detector sensitivity is 2 counts/s per μGy/h. Film compression starts at a reference 0.5 Gy/s, equivalent to accumulating 10 Gy in 20 seconds. This is an illustrative field calibration, not a dose calculated from the park or a prediction of death within seconds. Detector timing is informed by <a href="https://www.lndinc.com/wp-content/uploads/2017/03/LND_71210_download.pdf" target="_blank" rel="noopener">LND specifications</a>; the high-dose reference is informed by <a href="https://www.cdc.gov/radiation-emergencies/hcp/clinical-guidance/ars.html" target="_blank" rel="noopener">CDC guidance</a>.</p>
+  <p>The Settings plot shows the beaming law <b>D⁴</b> for a stationary source, separately from spectral color changes: ahead, D⁴ = ((1 + β) / (1 − β))²; sideways, D⁴ = (1 − β²)². The vertical brightness axis is logarithmic. Ahead, the multiplier is 9 at 0.5c, 361 at 0.9c, and 39,601 at 0.99c.</p>
+
   <h3>Things to try</h3>
   <ul>
     <li>
