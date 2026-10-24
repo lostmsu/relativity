@@ -21,6 +21,14 @@
   <p>Special relativity with <b id="v-c">c = 5 km/h</b></p>
 </header>
 
+<section class="hud panel" id="light-readout" aria-label="Incoming light relative to the starting view">
+  <p class="eyebrow">Incoming light</p>
+  <div class="light-value" id="v-light">× 1.00</div>
+  <div class="light-level" aria-hidden="true"><i id="v-light-level"></i></div>
+  <div class="radiation-count"><span>Radiation</span><output id="v-radiation">12 CPM</output></div>
+  <button type="button" id="toggle-light-sound" aria-pressed="true">Sound on</button>
+</section>
+
 <nav class="hud" id="tools">
   <button type="button" id="open-help">Field guide (Help) <kbd>H</kbd></button>
   <button type="button" id="open-panel">Settings <kbd>Tab</kbd></button>
@@ -157,6 +165,26 @@
         <input type="range" id="opt-hdr-strength" min="0" max="1" step="0.05" value="1">
       </div>
     </div>
+  </fieldset>
+
+  <fieldset id="light-settings">
+    <legend class="eyebrow">Light monitor</legend>
+    <label class="check">
+      <input type="checkbox" id="opt-background-radiation" checked>
+      <span>Background radiation
+        <small>Occasional natural-background ticks, including at rest. Switch off for zero at rest.</small></span>
+    </label>
+    <label class="check">
+      <input type="checkbox" id="opt-light-sound" checked>
+      <span>Audible intensity
+        <small>Individual detector ticks merge into crackle as exposure rises.</small></span>
+    </label>
+    <div class="slider">
+      <div class="top"><label for="opt-light-volume">Volume ceiling</label><output id="opt-light-volume-out" for="opt-light-volume">100% · 0 dB</output></div>
+      <input type="range" id="opt-light-volume" min="0" max="1" step="0.05" value="1">
+      <small id="light-sound-status">Sound starts when you click or use the keyboard.</small>
+    </div>
+    <p class="light-note">The live meter averages the whole view before exposure and HDR, relative to your starting view. Clicks indicate simulated light intensity.</p>
   </fieldset>
 
   <fieldset>

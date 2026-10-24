@@ -79,6 +79,15 @@ html, body {
   color: var(--dim);
 }
 .exposure-readout output { color: var(--accent); }
+#light-readout { top: 98px; left: var(--pad); width: 172px; padding: 10px 12px; pointer-events: auto; }
+.light-value { font-size: 22px; font-weight: 500; padding: 4px 0 8px; }
+.light-level { height: 3px; background: var(--edge); overflow: hidden; }
+.light-level i { display: block; height: 100%; width: 16%; background: var(--accent); transition: width 0.25s; }
+.radiation-count { display: flex; justify-content: space-between; gap: 8px; margin-top: 8px; color: var(--dim); font-size: 9px; }
+.radiation-count output { color: var(--accent); }
+#toggle-light-sound { margin-top: 8px; font-size: 10px; color: var(--dim); }
+#toggle-light-sound[aria-pressed="true"] { color: var(--accent); }
+.light-note { font-size: 10px; line-height: 1.6; color: var(--dim); margin: 10px 0 0; }
 input:focus-visible, button:focus-visible, summary:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 3px;

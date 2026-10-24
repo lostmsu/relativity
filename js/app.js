@@ -165,6 +165,8 @@
     S.tWorld = 0;
     S.tau = 0;
     if (R3.meter) R3.meter.reset();
+    if (R3.lightMeter) R3.lightMeter.reset();
+    if (R3.lightMonitor) R3.lightMonitor.reset();
   }
 
   // ---------------------------------------------------------------- physics -
@@ -262,6 +264,7 @@
     R3.proj = new Float32Array(16);
     R3.viewRot = new Float32Array(9);
     R3.meter = new R.CenterExposure(g);
+    R3.lightMeter = new R.CenterExposure(g, { circular: false, interval: 0.5 });
     R3.metering = false;
 
     g.clearColor(0.02, 0.03, 0.05, 1);
@@ -386,15 +389,18 @@
       : [0, 0, 1];
 
     R3.exposure = S.exposure * R3.meter.update(dt, S.autoExposure);
+    R3.lightMeter.update(dt, true);
+    R3.lightMonitor.update(R3.lightMeter.luminance, kin.beta);
 
     drawScene(kin, bd);
-    if (S.autoExposure) {
-      R3.metering = true;
-      try {
+    R3.metering = true;
+    try {
+      if (S.autoExposure) {
         R3.meter.sample(R3.proj, canvas.width, canvas.height, S.meterSize, () => drawScene(kin, bd));
-      } finally {
-        R3.metering = false;
       }
+      R3.lightMeter.sample(R3.proj, canvas.width, canvas.height, null, () => drawScene(kin, bd));
+    } finally {
+      R3.metering = false;
     }
     return { fwd, bd };
   }
@@ -690,6 +696,7 @@
 
     paintSpectrum();
     bindControls();
+    R3.lightMonitor = new R.LightMonitor();
     setupInput();
     loadModels();
     loadDecal();

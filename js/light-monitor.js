@@ -165,6 +165,93 @@
     }
   }
 
+  class LightMonitor {
+    constructor() {
+      this.baseline = null;
+      this.ratio = 1;
+      this.background = true;
+      this.exposure = R.radiation.at(0, this.background);
+      this.audio = new LightAudio();
+      this.audio.enabled = true;
+      this.audio.setIncidentRate(this.exposure.incidentCps);
+      this.readout = document.getElementById('v-light');
+      this.bar = document.getElementById('v-light-level');
+      this.button = document.getElementById('toggle-light-sound');
+      this.checkbox = document.getElementById('opt-light-sound');
+      this.status = document.getElementById('light-sound-status');
+      this.lastPaint = 0;
+      document.getElementById('opt-background-radiation').addEventListener('change', e => {
+        this.background = e.target.checked;
+      });
+      // Enabled by default; unlock playback on the first browser user gesture.
+      this.activateSound = event => {
+        if (event.target.closest?.('label')?.contains(this.checkbox)) return;
+        if (this.audio.enabled) this.setSound(true);
+      };
+      document.addEventListener('click', this.activateSound);
+      document.addEventListener('keydown', this.activateSound);
+      this.button.addEventListener('click', () => this.setSound(!this.audio.enabled));
+      this.checkbox.addEventListener('change', e => this.setSound(e.target.checked));
+      const volume = document.getElementById('opt-light-volume');
+      volume.addEventListener('input', () => {
+        this.audio.setVolume(Number(volume.value));
+        const v = Number(volume.value);
+        document.getElementById('opt-light-volume-out').textContent = v === 0
+          ? 'Muted' : Math.round(v * 100) + '% · ' + Math.round((v - 1) * 40) + ' dB';
+      });
+      document.addEventListener('visibilitychange', () => {
+        if (this.audio.enabled && this.audio.context) this.setSound(true);
+      });
+    }
+
+    async setSound(enabled) {
+      document.removeEventListener('click', this.activateSound);
+      document.removeEventListener('keydown', this.activateSound);
+      this.checkbox.checked = enabled;
+      this.button.setAttribute('aria-pressed', String(enabled));
+      this.button.textContent = enabled ? 'Sound on' : 'Sound off';
+      try {
+        await this.audio.setEnabled(enabled);
+        this.status.textContent = enabled
+          ? 'Irregular detector ticks; dense counts merge into crackle.'
+          : 'Sound is muted.';
+      } catch (err) {
+        await this.audio.setEnabled(false).catch(() => {});
+        this.checkbox.checked = false;
+        this.button.setAttribute('aria-pressed', 'false');
+        this.button.textContent = 'Sound off';
+        this.status.textContent = err.message;
+      }
+    }
+
+    reset() {
+      this.baseline = null;
+      this.ratio = 1;
+      this.exposure = R.radiation.at(0, this.background);
+      this.audio.setIncidentRate(this.exposure.incidentCps);
+    }
+
+    update(luminance, beta) {
+      if (luminance !== null && this.baseline === null) this.baseline = Math.max(luminance, 1e-14);
+      const ratio = luminance === null ? 1 : Math.max(0, luminance / this.baseline);
+      this.ratio = ratio;
+      this.exposure = R.radiation.at(beta, this.background);
+      this.audio.setIncidentRate(this.exposure.incidentCps);
+      const now = performance.now();
+      if (now - this.lastPaint < 100) return;
+      this.lastPaint = now;
+      this.audio.syncGain();
+      const cps = this.exposure.detectedCps;
+      document.getElementById('v-radiation').textContent = cps < 1
+        ? Math.round(cps * 60) + ' CPM' : cps.toLocaleString('en', { maximumFractionDigits: 0 }) + ' CPS';
+      const value = ratio >= 10000 || (ratio > 0 && ratio < 0.001)
+        ? ratio.toExponential(1) : ratio.toLocaleString('en', { maximumFractionDigits: ratio < 10 ? 2 : 0 });
+      this.readout.textContent = '× ' + value;
+      this.bar.style.width = Math.min(100, 12 + 88 * Math.log2(1 + ratio) / 20).toFixed(1) + '%';
+    }
+  }
+
+  R.LightMonitor = LightMonitor;
   R.LightAudio = LightAudio;
   R.lightClickRate = clickRate;
   R.lightVolumeGain = volumeGain;
