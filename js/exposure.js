@@ -9,28 +9,33 @@
 
   // The cropped square represents a circle's bounding box. Pixel centers
   // outside the circle never contribute, including the four bright corners.
-  function logAverage(pixels) {
-    let sum = 0, count = 0;
+  function average(pixels, circular) {
+    let sum = 0, linearSum = 0, count = 0;
     for (let y = 0; y < SIZE; y++) {
       for (let x = 0; x < SIZE; x++) {
         const dx = (x + 0.5) / SIZE * 2 - 1;
         const dy = (y + 0.5) / SIZE * 2 - 1;
-        if (dx * dx + dy * dy > 1) continue;
+        if (circular && dx * dx + dy * dy > 1) continue;
         const i = (y * SIZE + x) * 4;
         if (!pixels[i + 3]) continue;
-        sum += (pixels[i] * 256 + pixels[i + 1]) / 65535 * 96 - 48;
+        const stops = (pixels[i] * 256 + pixels[i + 1]) / 65535 * 96 - 48;
+        sum += stops;
+        linearSum += Math.pow(2, stops);
         count++;
       }
     }
-    return count ? sum / count : null;
+    return count ? { log: sum / count, linear: linearSum / count } : null;
   }
 
   class CenterExposure {
-    constructor(gl) {
+    constructor(gl, options = {}) {
       this.gl = gl;
       this.stops = 0;
       this.targetStops = 0;
-      this.elapsed = INTERVAL;
+      this.interval = options.interval ?? INTERVAL;
+      this.circular = options.circular ?? true;
+      this.elapsed = this.interval;
+      this.luminance = null;
       this.revision = 0;
       this.pending = null;
       this.pixels = new Uint8Array(SIZE * SIZE * 4);
@@ -61,12 +66,13 @@
     invalidate() {
       // Ignore in-flight readings for a previous region or toggle state.
       this.revision++;
-      this.elapsed = INTERVAL;
+      this.elapsed = this.interval;
     }
 
     reset() {
       this.invalidate();
       this.stops = this.targetStops = 0;
+      this.luminance = null;
     }
 
     update(dt, enabled) {
@@ -79,8 +85,11 @@
             gl.bindBuffer(gl.PIXEL_PACK_BUFFER, this.buffer);
             gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, this.pixels);
             gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
-            const mean = logAverage(this.pixels);
-            if (mean !== null) this.targetStops = Math.max(-40, Math.min(20, Math.log2(KEY) - mean));
+            const mean = average(this.pixels, this.circular);
+            if (mean !== null) {
+              this.targetStops = Math.max(-40, Math.min(20, Math.log2(KEY) - mean.log));
+              this.luminance = mean.linear;
+            }
           }
           gl.deleteSync(this.pending.fence);
           this.pending = null;
@@ -93,15 +102,17 @@
     }
 
     sample(projection, width, height, percent, draw) {
-      if (this.pending || this.elapsed < INTERVAL) return;
+      if (this.pending || this.elapsed < this.interval) return;
       const gl = this.gl;
       const px = projection[0], py = projection[5];
-      const diameter = Math.min(width, height) * percent / 100;
+      const diameter = percent == null ? null : Math.min(width, height) * percent / 100;
       const dither = gl.isEnabled(gl.DITHER);
       // Crop the existing camera to exactly the central circle's bounding box.
       // Both axes use physical pixels, so it stays circular at every aspect.
-      projection[0] *= width / diameter;
-      projection[5] *= height / diameter;
+      if (diameter !== null) {
+        projection[0] *= width / diameter;
+        projection[5] *= height / diameter;
+      }
       gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffer);
       gl.viewport(0, 0, SIZE, SIZE);
       gl.disable(gl.DITHER); // preserve the encoded bytes
