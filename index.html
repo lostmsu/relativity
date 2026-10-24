@@ -184,6 +184,14 @@
       <input type="range" id="opt-light-volume" min="0" max="1" step="0.05" value="1">
       <small id="light-sound-status">Sound starts when you click or use the keyboard.</small>
     </div>
+    <div class="curve-caption"><span>Beaming · D⁴</span><output id="curve-beta">0.00% c</output></div>
+    <svg id="brightness-curve" viewBox="0 0 248 124" role="img" aria-label="Brightness versus speed: forward light rises steeply; sideways light dims. The vertical axis is logarithmic, spanning a millionth to a million times resting intensity.">
+      <g class="curve-grid"><path d="M29 16H239 M29 56H239 M29 95H239 M29 10V102H239"/></g>
+      <g class="curve-labels"><text x="1" y="19">10⁶</text><text x="13" y="59">1</text><text x="1" y="98">10⁻⁶</text><text x="29" y="119">0</text><text x="128" y="119">0.5c</text><text x="215" y="119">0.999c</text></g>
+      <path id="curve-ahead"/><path id="curve-side"/>
+      <line id="curve-speed" x1="29" x2="29" y1="10" y2="102"/>
+    </svg>
+    <div class="curve-legend"><span class="ahead">Ahead</span><span class="side">Sideways</span><span>Log brightness</span></div>
     <p class="light-note">The live meter averages the whole view before exposure and HDR, relative to your starting view. Clicks indicate simulated light intensity.</p>
   </fieldset>
 

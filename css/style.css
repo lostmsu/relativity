@@ -87,6 +87,18 @@ html, body {
 .radiation-count output { color: var(--accent); }
 #toggle-light-sound { margin-top: 8px; font-size: 10px; color: var(--dim); }
 #toggle-light-sound[aria-pressed="true"] { color: var(--accent); }
+.curve-caption { display: flex; justify-content: space-between; font-size: 10px; color: var(--dim); margin-top: 8px; }
+.curve-caption output { color: var(--accent); }
+#brightness-curve { display: block; width: 100%; margin-top: 5px; overflow: visible; }
+.curve-grid path { stroke: var(--edge); fill: none; stroke-width: 1; }
+.curve-labels { fill: var(--faint); font-size: 8px; }
+#curve-ahead, #curve-side { fill: none; stroke-width: 1.7; }
+#curve-ahead { stroke: var(--accent); }
+#curve-side { stroke: var(--blue); }
+#curve-speed { stroke: var(--dim); stroke-dasharray: 2 3; stroke-width: 1; }
+.curve-legend { display: flex; gap: 12px; font-size: 9px; color: var(--faint); }
+.curve-legend .ahead { color: var(--accent); }
+.curve-legend .side { color: var(--blue); }
 .light-note { font-size: 10px; line-height: 1.6; color: var(--dim); margin: 10px 0 0; }
 input:focus-visible, button:focus-visible, summary:focus-visible {
   outline: 2px solid var(--accent);

@@ -165,6 +165,26 @@
     }
   }
 
+  const PLOT = { left: 29, right: 239, top: 10, bottom: 102, maxBeta: 0.999 };
+  function point(beta, log10Brightness) {
+    return [PLOT.left + beta / PLOT.maxBeta * (PLOT.right - PLOT.left),
+      PLOT.top + (7 - log10Brightness) / 14 * (PLOT.bottom - PLOT.top)];
+  }
+
+  function drawCurves() {
+    for (const [id, direction] of [['curve-ahead', 1], ['curve-side', 0]]) {
+      const points = [];
+      for (let i = 0; i <= 300; i++) {
+        const beta = PLOT.maxBeta * i / 300;
+        const gamma = 1 / Math.sqrt(1 - beta * beta);
+        const doppler = 1 / (gamma * (1 - beta * direction));
+        const [x, y] = point(beta, 4 * Math.log10(doppler));
+        points.push((i ? 'L' : 'M') + x.toFixed(2) + ' ' + y.toFixed(2));
+      }
+      document.getElementById(id).setAttribute('d', points.join(' '));
+    }
+  }
+
   class LightMonitor {
     constructor() {
       this.baseline = null;
@@ -179,6 +199,7 @@
       this.button = document.getElementById('toggle-light-sound');
       this.checkbox = document.getElementById('opt-light-sound');
       this.status = document.getElementById('light-sound-status');
+      this.marker = document.getElementById('curve-speed');
       this.lastPaint = 0;
       document.getElementById('opt-background-radiation').addEventListener('change', e => {
         this.background = e.target.checked;
@@ -202,6 +223,7 @@
       document.addEventListener('visibilitychange', () => {
         if (this.audio.enabled && this.audio.context) this.setSound(true);
       });
+      drawCurves();
     }
 
     async setSound(enabled) {
@@ -248,6 +270,10 @@
         ? ratio.toExponential(1) : ratio.toLocaleString('en', { maximumFractionDigits: ratio < 10 ? 2 : 0 });
       this.readout.textContent = '× ' + value;
       this.bar.style.width = Math.min(100, 12 + 88 * Math.log2(1 + ratio) / 20).toFixed(1) + '%';
+      const [x] = point(Math.min(beta, PLOT.maxBeta), 0);
+      this.marker.setAttribute('x1', x);
+      this.marker.setAttribute('x2', x);
+      document.getElementById('curve-beta').textContent = (beta * 100).toFixed(2) + '% c';
     }
   }
 
