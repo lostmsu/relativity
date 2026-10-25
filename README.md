@@ -8,7 +8,30 @@ length contraction, time dilation, Terrell rotation, etc. The Doppler effect of 
 also becomes apparent, with objects in front of you blueshifted, objects behind you
 redshifted, and transverse Doppler effects visible on objects in motion.
 
-[Live demo!](https://rivendell.dmitrybrant.com/relativity)
+[Original live demo!](https://rivendell.dmitrybrant.com/relativity)
+
+## Geiger counter
+
+This branch adds Geiger audio to the original simulator. Run it locally using
+the instructions below. Sound is enabled by default and starts on the first
+click or keypress, as required by browser autoplay rules.
+
+Settings has a **Geiger counter** section with a sound toggle, **Background
+radiation** toggle, **Volume ceiling** slider and expected detector rate in
+counts per minute (CPM) or counts per second (CPS). Background gives about 12
+irregular ticks per minute at rest. Switch background off for exact silence
+at zero speed. Resetting the observer also resets the reference exposure.
+
+The reference field in `js/radiation.js` increases with the head-on D⁴ factor
+`((1 + beta) / (1 - beta))²`. Its illustrative calibration is 0.1 μGy/h at
+rest and 2 counts/s per μGy/h. This is a virtual detector calibration, not a
+physical dose calculated from the scene; visible brightness does not drive it.
+
+Audio uses Poisson arrivals with a 90 μs nonparalyzable recovery time and a
+constant waveform per tick. Dense events merge into crackle and are packed
+into short audio blocks. A compressor and soft limiter bound overlapping
+pulses. The volume slider uses an exponential amplitude curve from -40 to
+0 dB, with exact mute at zero. Playback pauses in hidden tabs.
 
 ## Running it
 
@@ -175,6 +198,8 @@ js/geometry.js    tessellated mesh builders
 js/stl.js         STL loading: weld, subdivide, auto-fit
 js/shaders.js     the relativistic vertex transform
 js/scene.js       the park
+js/radiation.js   reference background field and detector count rate
+js/geiger.js      synthesized Geiger audio and settings
 js/app.js         controls, dynamics, render loop
 objects/          STL models and textures, fetched at load
 tools/serve.mjs   dev server, no-cache
