@@ -108,6 +108,7 @@
 
     addEventListener('keydown', e => {
       if (e.code === 'Escape') { return; }           // the browser releases the lock
+      if (e.target.closest?.('#geiger-settings')) return;
       if (e.repeat) { return; }                      // held keys must not flicker toggles
 
       const fx = FX_KEYS[e.code];
@@ -160,6 +161,7 @@
     S.pitch = SCENE.start.pitch;
     S.tWorld = 0;
     S.tau = 0;
+    if (R3.geiger) R3.geiger.reset();
   }
 
   // ---------------------------------------------------------------- physics -
@@ -665,6 +667,7 @@
 
     paintSpectrum();
     bindControls();
+    R3.geiger = new R.Geiger();
     setupInput();
     loadModels();
     loadDecal();
@@ -679,6 +682,7 @@
       frames++; acc += real; hudAcc += real;
 
       const kin = step(dt);
+      R3.geiger.update(kin.beta);
       if (S.groundAdaptive) {
         useGroundLevel(SCENE.adaptiveGroundLevel(kin.gamma, S.groundDetail, S.groundActive));
       }

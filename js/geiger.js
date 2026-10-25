@@ -160,5 +160,77 @@
     }
   }
 
+  class Geiger {
+    constructor() {
+      this.beta = 0;
+      this.background = document.getElementById('opt-geiger-background').checked;
+      this.audio = new GeigerAudio();
+      this.checkbox = document.getElementById('opt-geiger');
+      this.audio.enabled = this.checkbox.checked;
+      this.readout = document.getElementById('v-geiger');
+      this.status = document.getElementById('geiger-status');
+      this.lastPaint = -Infinity;
+
+      document.getElementById('opt-geiger-background').addEventListener('change', e => {
+        this.background = e.target.checked;
+        this.update(this.beta, true);
+      });
+      // Keep sound enabled by default while respecting browser autoplay rules.
+      this.activateSound = event => {
+        if (event.target.closest?.('label')?.contains(this.checkbox)) return;
+        if (this.audio.enabled) this.setSound(true);
+      };
+      document.addEventListener('click', this.activateSound);
+      document.addEventListener('keydown', this.activateSound);
+      this.checkbox.addEventListener('change', e => this.setSound(e.target.checked));
+      const volume = document.getElementById('opt-geiger-volume');
+      this.audio.setVolume(Number(volume.value));
+      volume.addEventListener('input', () => {
+        const value = Number(volume.value);
+        this.audio.setVolume(value);
+        document.getElementById('opt-geiger-volume-out').textContent = value === 0
+          ? 'Muted' : Math.round(value * 100) + '% · ' + Math.round((value - 1) * 40) + ' dB';
+      });
+      document.addEventListener('visibilitychange', () => {
+        if (this.audio.enabled && this.audio.context) this.setSound(true);
+      });
+      this.reset();
+    }
+
+    async setSound(enabled) {
+      document.removeEventListener('click', this.activateSound);
+      document.removeEventListener('keydown', this.activateSound);
+      this.checkbox.checked = enabled;
+      try {
+        await this.audio.setEnabled(enabled);
+        this.status.textContent = enabled
+          ? 'Irregular detector ticks; dense counts merge into crackle.'
+          : 'Sound is muted.';
+      } catch (err) {
+        await this.audio.setEnabled(false).catch(() => {});
+        this.checkbox.checked = false;
+        this.status.textContent = err.message;
+      }
+    }
+
+    reset() {
+      this.update(0, true);
+    }
+
+    update(beta, force = false) {
+      this.beta = beta;
+      this.reading = R.radiation.at(beta, this.background);
+      this.audio.setIncidentRate(this.reading.incidentCps);
+      const now = performance.now();
+      if (!force && now - this.lastPaint < 100) return;
+      this.lastPaint = now;
+      this.audio.syncGain();
+      const cps = this.reading.detectedCps;
+      this.readout.textContent = cps < 1
+        ? Math.round(cps * 60) + ' CPM' : cps.toLocaleString('en', { maximumFractionDigits: 0 }) + ' CPS';
+    }
+  }
+
   R.GeigerAudio = GeigerAudio;
+  R.Geiger = Geiger;
 })(window.Rel = window.Rel || {});

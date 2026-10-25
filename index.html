@@ -138,6 +138,28 @@
     </label>
   </fieldset>
 
+  <fieldset id="geiger-settings">
+    <legend class="eyebrow">Geiger counter</legend>
+    <label class="check">
+      <input type="checkbox" id="opt-geiger" checked>
+      <span>Geiger sound
+        <small>Individual detector ticks merge into crackle as exposure rises.</small></span>
+    </label>
+    <label class="check">
+      <input type="checkbox" id="opt-geiger-background" checked>
+      <span>Background radiation
+        <small>Occasional ticks at rest. Switch off for silence at zero speed.</small></span>
+    </label>
+    <div class="slider">
+      <div class="top"><label for="opt-geiger-volume">Volume ceiling</label><output id="opt-geiger-volume-out" for="opt-geiger-volume">100% · 0 dB</output></div>
+      <input type="range" id="opt-geiger-volume" min="0" max="1" step="0.05" value="1">
+      <small id="geiger-status">Sound starts when you click or use the keyboard.</small>
+    </div>
+    <div class="slider">
+      <div class="top"><span>Detector rate</span><output id="v-geiger">12 CPM</output></div>
+    </div>
+  </fieldset>
+
   <details id="debug">
     <summary>Debug</summary>
     <div class="debug-body">
@@ -256,6 +278,8 @@
 <script src="js/stl.js"></script>
 <script src="js/shaders.js"></script>
 <script src="js/scene.js"></script>
+<script src="js/radiation.js"></script>
+<script src="js/geiger.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>
