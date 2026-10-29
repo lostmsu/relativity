@@ -80,6 +80,33 @@
 
   // ----------------------------------------------------------------- input --
   const keys = Object.create(null);
+  const screenKeys = Object.create(null);
+  const heldControls = new Map();
+  let lookPointer = null;
+
+  function syncScreenControls() {
+    const held = new Set(heldControls.values());
+    for (const button of document.querySelectorAll('[data-motion]')) {
+      const action = button.dataset.motion;
+      screenKeys[action] = held.has(action);
+      button.classList.toggle('is-held', screenKeys[action]);
+      button.setAttribute('aria-pressed', String(screenKeys[action]));
+    }
+  }
+
+  function releaseInput() {
+    for (const key in keys) keys[key] = false;
+    heldControls.clear();
+    syncScreenControls();
+    lookPointer = null;
+  }
+
+  function syncMobileControls() {
+    document.getElementById('mobile-controls').hidden =
+      !hud.overlay.classList.contains('is-hidden') ||
+      hud.panel.classList.contains('is-open') || hud.help.classList.contains('is-open');
+  }
+
   const CODE = {
     KeyW: 'fwd', ArrowUp: 'fwd', KeyS: 'back', ArrowDown: 'back',
     KeyA: 'left', ArrowLeft: 'left', KeyD: 'right', ArrowRight: 'right',
@@ -94,14 +121,16 @@
   let canvas, glc, hud;
 
   function setupInput() {
+    const touchDevice = matchMedia('(any-pointer: coarse)');
     /* Getting in is deliberately NOT conditional on pointer lock succeeding.
      * Some browsers and embedding contexts refuse the lock, and tying the
      * overlay to it would leave you staring at an undismissable card. */
-    const begin = () => {
+    const begin = (lockPointer = true) => {
       hud.overlay.classList.add('is-hidden');
       hud.hint.classList.remove('is-faded');
       canvas.focus({ preventScroll: true });
-      if (!document.pointerLockElement && canvas.requestPointerLock) {
+      syncMobileControls();
+      if (lockPointer && !document.pointerLockElement && canvas.requestPointerLock) {
         const req = canvas.requestPointerLock();
         if (req && req.catch) req.catch(() => {});   // fall back to drag-to-look
       }
@@ -123,16 +152,59 @@
       if (e.code === 'KeyP' || e.code === 'Pause') { togglePause(); return; }
       const a = CODE[e.code];
       if (a) {
-        if (overlayUp()) begin();                    // just walking gets you in
+        if (overlayUp()) begin(!touchDevice.matches); // just walking gets you in
         keys[a] = true;
         e.preventDefault();
       }
     });
     addEventListener('keyup', e => { const a = CODE[e.code]; if (a) keys[a] = false; });
-    addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
+    addEventListener('blur', releaseInput);
+    addEventListener('resize', releaseInput);
+    touchDevice.addEventListener('change', releaseInput);
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) releaseInput();
+    });
 
-    hud.overlay.addEventListener('click', begin);
-    canvas.addEventListener('click', begin);
+    hud.overlay.addEventListener('click', () => begin(!touchDevice.matches));
+    canvas.addEventListener('click', e => begin(e.pointerType !== 'touch' && !touchDevice.matches));
+
+    for (const button of document.querySelectorAll('[data-motion]')) {
+      const action = button.dataset.motion;
+      button.addEventListener('pointerdown', e => {
+        if (e.button !== 0) return;
+        e.preventDefault();
+        begin(false);
+        button.setPointerCapture(e.pointerId);
+        heldControls.set(e.pointerId, action);
+        syncScreenControls();
+      });
+      const release = e => {
+        heldControls.delete(e.pointerId);
+        syncScreenControls();
+      };
+      button.addEventListener('pointerup', release);
+      button.addEventListener('pointercancel', release);
+      button.addEventListener('lostpointercapture', release);
+      button.addEventListener('contextmenu', e => e.preventDefault());
+      button.addEventListener('keydown', e => {
+        if (e.code !== 'Space' && e.code !== 'Enter') return;
+        e.preventDefault();
+        if (e.repeat) return;
+        heldControls.set('key:' + e.code, action);
+        syncScreenControls();
+      });
+      button.addEventListener('keyup', e => {
+        if (e.code !== 'Space' && e.code !== 'Enter') return;
+        e.preventDefault();
+        heldControls.delete('key:' + e.code);
+        syncScreenControls();
+      });
+      button.addEventListener('blur', () => {
+        heldControls.delete('key:Space');
+        heldControls.delete('key:Enter');
+        syncScreenControls();
+      });
+    }
 
     // Losing the lock is not an event worth interrupting anyone for: the world
     // keeps running either way, the keys still work, and clicking takes the
@@ -141,6 +213,7 @@
       if (document.pointerLockElement === canvas) {
         hud.overlay.classList.add('is-hidden');
         hud.hint.classList.remove('is-faded');
+        syncMobileControls();
       }
     });
 
@@ -150,14 +223,31 @@
     };
     addEventListener('mousemove', e => {
       if (document.pointerLockElement === canvas) look(e.movementX, e.movementY);
-      else if (dragging) look(e.movementX || 0, e.movementY || 0);
     });
-    let dragging = false;
-    canvas.addEventListener('mousedown', () => { dragging = true; });
-    addEventListener('mouseup', () => { dragging = false; });
+    canvas.addEventListener('pointerdown', e => {
+      if (e.button !== 0 || lookPointer || document.pointerLockElement === canvas) return;
+      lookPointer = { id: e.pointerId, x: e.clientX, y: e.clientY };
+      canvas.setPointerCapture(e.pointerId);
+    });
+    canvas.addEventListener('pointermove', e => {
+      if (!lookPointer || e.pointerId !== lookPointer.id || document.pointerLockElement === canvas) return;
+      look(e.clientX - lookPointer.x, e.clientY - lookPointer.y);
+      lookPointer.x = e.clientX;
+      lookPointer.y = e.clientY;
+    });
+    const stopLook = e => { if (lookPointer?.id === e.pointerId) lookPointer = null; };
+    canvas.addEventListener('pointerup', stopLook);
+    canvas.addEventListener('pointercancel', stopLook);
+    canvas.addEventListener('lostpointercapture', stopLook);
+    if (touchDevice.matches) {
+      hud.panel.classList.remove('is-open');
+      hud.overlay.querySelector('.cue').textContent = 'Tap to start';
+    }
+    syncMobileControls();
   }
 
   function resetObserver() {
+    releaseInput();
     S.pos = [SCENE.start.x, SCENE.start.y, SCENE.start.z];
     S.vel = [0, 0, 0];
     S.yaw = SCENE.start.yaw;
@@ -178,15 +268,15 @@
     const rightH = [cy, 0, -sy];
 
     let d = [0, 0, 0];
-    if (keys.fwd) { d[0] += fwdH[0]; d[2] += fwdH[2]; }
-    if (keys.back) { d[0] -= fwdH[0]; d[2] -= fwdH[2]; }
+    if (keys.fwd || screenKeys.fwd) { d[0] += fwdH[0]; d[2] += fwdH[2]; }
+    if (keys.back || screenKeys.back) { d[0] -= fwdH[0]; d[2] -= fwdH[2]; }
     if (keys.right) { d[0] += rightH[0]; d[2] += rightH[2]; }
     if (keys.left) { d[0] -= rightH[0]; d[2] -= rightH[2]; }
     if (keys.up) d[1] += 1;
     if (keys.down) d[1] -= 1;
 
     const dl = len(d);
-    if (keys.brake) {
+    if (keys.brake || screenKeys.brake) {
       S.vel = shedRapidity(S.vel, BRAKE_DECAY * dt, c);
     } else if (dl > 1e-6) {
       const a = ACCEL * dt;
@@ -543,19 +633,22 @@
   // --------------------------------------------------------------- UI wiring
   function togglePanel() {
     const open = hud.panel.classList.toggle('is-open');
+    releaseInput();
     if (open && document.pointerLockElement) document.exitPointerLock();
     if (!open) canvas.focus({ preventScroll: true });
-    for (const k in keys) keys[k] = false;
+    syncMobileControls();
   }
   function toggleHelp() {
     const open = hud.help.classList.toggle('is-open');
+    releaseInput();
     if (open && document.pointerLockElement) document.exitPointerLock();
     if (!open) canvas.focus({ preventScroll: true });
-    for (const k in keys) keys[k] = false;
+    syncMobileControls();
   }
 
   /* Pause the time-evolution of the world, while leaving the mouse free to keep exploring. */
   function togglePause() {
+    releaseInput();
     S.paused = !S.paused;
     hud.paused.classList.toggle('is-on', S.paused);
   }

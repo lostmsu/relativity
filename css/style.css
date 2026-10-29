@@ -45,6 +45,7 @@ html, body {
   display: block;
   background: var(--ground);
   cursor: crosshair;
+  touch-action: none;
 }
 
 #radiation-film {
@@ -748,6 +749,95 @@ legend { padding: 0 0 8px; }
   #instruments { width: auto; }
   #gauge .caption { flex-wrap: wrap; }
   #galilean { bottom: 16px; }
+}
+
+#mobile-controls { display: none; }
+#mobile-controls[hidden] { display: none; }
+
+@media (any-pointer: coarse) {
+  :root { --mobile-bottom: calc(110px + env(safe-area-inset-bottom, 0px)); }
+  #hint { display: none; }
+  #masthead p { display: none; }
+  #masthead h1 { line-height: 1.1; }
+  #tools kbd { display: none; }
+  #light-readout {
+    top: 96px;
+    width: min(380px, calc(100% - 28px));
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 12px;
+  }
+  #light-readout > .eyebrow { grid-area: 1 / 1; }
+  #light-readout .light-value { grid-area: 2 / 1; padding: 0; font-size: 18px; }
+  #light-readout .light-level { display: none; }
+  #light-readout .radiation-count { grid-area: 1 / 2; margin: 0; }
+  #toggle-light-sound { grid-area: 2 / 2; justify-self: end; margin: 0; }
+  #instruments, #clocks { bottom: var(--mobile-bottom); }
+  #galilean { bottom: calc(var(--mobile-bottom) + 8px); }
+  #paused { bottom: calc(var(--mobile-bottom) + 32px); }
+  #mobile-controls {
+    position: fixed;
+    z-index: 8;
+    left: max(var(--pad), env(safe-area-inset-left, 0px));
+    right: max(var(--pad), env(safe-area-inset-right, 0px));
+    bottom: max(var(--pad), env(safe-area-inset-bottom, 0px));
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 7px;
+  }
+  #mobile-controls button {
+    min-height: 64px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 6px;
+    border: 1px solid var(--edge-bright);
+    border-radius: 8px;
+    background: var(--panel-solid);
+    color: var(--ink);
+    font-family: var(--label);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+  }
+  #mobile-controls button span { font-size: 24px; line-height: 1; color: var(--accent); }
+  #mobile-controls button.is-held { background: #382B1C; border-color: var(--accent); }
+  #mobile-controls-help {
+    grid-column: 1 / -1;
+    margin: 0;
+    text-align: center;
+    font-size: 9px;
+    color: var(--dim);
+    pointer-events: none;
+  }
+}
+
+@media (any-pointer: coarse) and (max-width: 720px) {
+  #tools { top: 54px; }
+  #instruments { width: calc(52% - 20px); }
+  #clocks { width: calc(48% - 20px); }
+  #kinematics .big span:first-child { font-size: 22px; }
+  .row { font-size: 10px; gap: 5px; }
+  .clock { gap: 6px; }
+  .clock dd { font-size: 14px; }
+  #clocks footer { font-size: 9px; }
+}
+
+@media (any-pointer: coarse) and (max-height: 480px) {
+  #gauge, #clocks footer { display: none; }
+  #light-readout { top: 58px; left: auto; right: var(--pad); width: 320px; }
+}
+
+@media (any-pointer: coarse) and (max-width: 360px) {
+  #kinematics .big span:first-child { font-size: 20px; }
+  #kinematics .big span:last-child { font-size: 10px; }
+  #clocks footer { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

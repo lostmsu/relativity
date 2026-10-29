@@ -228,6 +228,12 @@ with:
 
 ## Controls
 
+On touch screens, use the three buttons along the bottom: hold **Accelerate**
+to accelerate forward, **Brake** to slow to a stop, or **Reverse** to accelerate
+backward (slowing forward motion first). Let go to coast. Drag the scene to
+look around, including while another finger holds a movement button. Controls
+release when a touch is cancelled, the app loses focus, or a drawer opens.
+
 `W A S D` or arrow keys to accelerate · mouse cursor to look around while moving · `Space` to stop · `P` pause the world · `Q`/`E` drop and rise · `R` reset to start · `Tab` settings · `H` field guide (help).
 
 The various relativistic effects can be turned on or off with these keys: `L` light-travel delay, `G` aberration and
