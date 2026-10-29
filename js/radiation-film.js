@@ -94,10 +94,12 @@
       const kind = Math.random();
       const particle = {
         x: Math.random() * width, y: Math.random() * height,
-        life: 0.07 + Math.random() * 0.18, age: 0,
-        radius: 0.4 + Math.pow(Math.random(), 3) * 1.8,
+        life: 0.14 + Math.random() * 0.22, age: 0,
+        radius: 0.8 + Math.pow(Math.random(), 3) * 1.8,
         gray: 125 + Math.floor(Math.random() * 131),
-        opacity: (0.25 + Math.random() * 0.65) * this.strength,
+        // Intensity controls how often hits occur, rather than making every
+        // individual exposure mark nearly transparent at the default setting.
+        opacity: 0.6 + Math.random() * 0.4,
         type: kind < 0.61 ? 'fleck' : kind < 0.85 ? 'cluster' : 'track',
         angle: Math.random() * Math.PI * 2,
         length: 3 + Math.pow(Math.random(), 2) * 24,
@@ -134,7 +136,10 @@
       ctx.fillStyle = this.pattern;
       ctx.fillRect(0, 0, width, height);
 
-      const rate = exposure.detectedCps * this.strength * width * height / 1e6;
+      // Keep the same reference sensitivity on small screens. Scaling solely
+      // by CSS area made phone hits several times rarer than desktop hits.
+      const area = Math.max(1, width * height / 1e6);
+      const rate = exposure.detectedCps * this.strength * area;
       this.spawnBudget += rate * Math.min(dt, 0.05);
       const count = Math.min(200, Math.floor(this.spawnBudget), 1200 - this.particles.length);
       this.spawnBudget -= Math.floor(this.spawnBudget);
@@ -150,7 +155,7 @@
         ctx.strokeStyle = ctx.fillStyle;
         if (p.type === 'track') {
           // A short kinked, broken exposure track, not a moving star trail.
-          ctx.lineWidth = p.radius * 0.8;
+          ctx.lineWidth = Math.max(0.8, p.radius * 0.8);
           ctx.lineCap = 'round';
           ctx.beginPath();
           ctx.moveTo(-p.length * 0.5, 0);

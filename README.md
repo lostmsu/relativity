@@ -37,7 +37,11 @@ does not mean death occurs within 20 seconds. Sources:
 [CDC high-dose context](https://www.cdc.gov/radiation-emergencies/hcp/clinical-guidance/ars.html).
 
 At background levels the overlay produces occasional marks, with no grain
-curtain. Clusters, tracks and fogging build with reference exposure. The raster
+curtain. Individual marks retain visible contrast and last 0.14–0.36 seconds;
+the intensity setting changes their frequency rather than fading each hit.
+Small screens use a one-megapixel reference area so phone marks are not made
+rarer just because the CSS viewport is smaller. Clusters, tracks and fogging
+build with reference exposure. The raster
 grain layer supplies coverage while larger marks are bounded at 1,200 particles.
 The separate canvas sits below the instruments and is excluded from both
 brightness meters; it does not alter relativistic geometry.
